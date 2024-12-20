@@ -1,5 +1,7 @@
-use miniserve::{http, Content, Request, Response};
+use chatbot::{gen_random_number, query_chat};
+use miniserve::{http::StatusCode, Content, Request, Response};
 use serde::{Deserialize, Serialize};
+use tokio::join;
 
 // Define the data structure for incoming JSON
 #[derive(Deserialize)]
@@ -20,16 +22,19 @@ async fn index(_req: Request) -> Response {
 
 async fn chat(req: Request) -> Response {
     match req {
-        Request::Get => Err(http::StatusCode::METHOD_NOT_ALLOWED),
+        Request::Get => Err(StatusCode::METHOD_NOT_ALLOWED),
         Request::Post(body) => {
             if let Ok(chat_request) = serde_json::from_str::<ChatRequest>(&body) {
                 let mut messages = chat_request.messages;
-                messages.push(String::from("And how does that make you feel?"));
+                let (r, mut responses) = join!(gen_random_number(), query_chat(&messages));
+
+                let response = responses.remove(r % responses.len());
+                messages.push(response);
 
                 let response_body = serde_json::to_string(&ChatResponse { messages }).unwrap();
                 Ok(Content::Json(response_body))
             } else {
-                Err(http::StatusCode::BAD_REQUEST)
+                Err(StatusCode::INTERNAL_SERVER_ERROR)
             }
         }
     }
