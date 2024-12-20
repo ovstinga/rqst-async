@@ -13,12 +13,12 @@ struct ChatResponse {
     messages: Vec<String>,
 }
 
-fn index(_req: Request) -> Response {
+async fn index(_req: Request) -> Response {
     let content = include_str!("../index.html").to_string();
     Ok(Content::Html(content))
 }
 
-fn chat(req: Request) -> Response {
+async fn chat(req: Request) -> Response {
     match req {
         Request::Get => Err(http::StatusCode::METHOD_NOT_ALLOWED),
         Request::Post(body) => {
@@ -35,9 +35,11 @@ fn chat(req: Request) -> Response {
     }
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     miniserve::Server::new()
         .route("/", index)
         .route("/chat", chat)
         .run()
+        .await
 }
